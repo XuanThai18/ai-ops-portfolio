@@ -229,6 +229,7 @@ Chỗ cần nói rõ khi trình bày:
 - **Con người:** sổ tay ngắn cho nhân viên, chú thích hướng dẫn ngay trên giao diện duyệt, giờ hỗ trợ cố định mỗi tuần.
 
 ## Liên hệ
-
+- Bảng phân loại khiếu nại (chỉ xem): [Xem trên Airtable](https://airtable.com/appYPsAZNksb4Ew1K/shrSqqAXiDtGrp8mj)
+- Nhật ký lỗi và thư viện prompt (chỉ xem): [Xem trên Airtable](https://airtable.com/appjEZ8zjbWZ4FtkS/shrLtRXcjzxwCLAms)
 - Mã nguồn các dự án khác: [github.com/XuanThai18](https://github.com/XuanThai18)
 - Email: nguyenxuanthai1811@gmail.com · Điện thoại: 0397 720 010
