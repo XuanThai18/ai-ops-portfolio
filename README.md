@@ -26,7 +26,18 @@ Mục tiêu: một quy trình mà AI làm phần đọc và phân loại, con ng
 
 ## Giải pháp
 
-&#91;embedded content: luồng xử lý một khiếu nại · 6 bước, 1 vòng sửa lỗi\]
+```mermaid
+flowchart LR
+  A["Tin nhắn khách<br/>Zalo, email, web"] --> B["AI phân loại<br/>prompt + context"]
+  B --> C["Airtable<br/>lưu kết quả ai_"]
+  C --> D{"Cần xem gấp?<br/>mức Cao hoặc từ khóa"}
+  D -- có --> E["Email cảnh báo"]
+  E --> F
+  C --> F["Người duyệt<br/>xác nhận / báo sai"]
+  F -- xác nhận --> G["Bộ phận xử lý"]
+  F -. báo sai .-> H["Sửa prompt, context<br/>thêm ca test"]
+  H -.-> B
+```
 
 Mỗi ca được AI phân loại trước, nhưng chỉ đến tay bộ phận xử lý sau khi người duyệt xác nhận; ca bị báo sai quay về thành dữ liệu để sửa prompt.
 
@@ -67,8 +78,6 @@ Bỏ context thừa là có chủ ý: vừa tiết kiệm token mỗi lần gọ
 
 **Quản lý phiên bản:** prompt, context, ca test và nhật ký lỗi nằm trong một base Airtable riêng (Thư viện AI), bốn bảng liên kết với nhau. Mở một file context là thấy ngay prompt nào đang dùng nó; mở một phiên bản prompt là thấy các ca test đã chạy và kết quả. Prompt phân loại tự động đã qua v1-API, v1.1-API, v1.2-API, mỗi lần sửa có ca thật làm bằng chứng.
 
-&#91;Ảnh: phần Instructions và Knowledge của Project phân loại\]
-
 ## Kiểm thử kết quả AI
 
 Mỗi Project có **20 ca kiểm thử** với đáp án viết sẵn: 15 ca thường gặp và 5 ca cố tình gài bẫy.
@@ -91,15 +100,11 @@ Mỗi Project có **20 ca kiểm thử** với đáp án viết sẵn: 15 ca th�
 | v1.1-API | Đủ 3 bộ phận riêng, nhưng lý do mất ghi chú "sản phẩm ngoài danh mục" | Phát hiện hai quy tắc mâu thuẫn, viết lại quy tắc 6 |
 | v1.2-API | Đúng các trường | Còn một điểm mở: độ tin cậy ra "cao" trong khi đáp án kỳ vọng "thấp"; prompt chưa từng yêu cầu điều đó, nên đang quyết định sửa prompt hay sửa đáp án |
 
-Bảng điểm đủ 20 ca của từng hướng: \[điền sau khi chấm xong\]
-
-&#91;Ảnh: bảng chấm 20 ca có cột điểm và ghi chú lỗi\]
-
 ## Hệ thống Airtable
 
 **Cấu trúc:** 2 bảng liên kết. KhachHang (hạng VIP, Thường, Mới) và PhanHoi. Mỗi phản hồi trỏ tới khách, tự kéo hạng khách sang bằng lookup; mỗi khách tự đếm số phản hồi và số ca mức Cao bằng count có điều kiện.
 
-**Quy ước tên trường cho biết ai điền:** `ai_` do Claude điền, `check_` do người duyệt đánh dấu, `sys_` do hệ thống ghi. Nhãn và bộ phận là lựa chọn cố định, khớp từng chữ với context, để lọc và đếm luôn đúng.
+**Quy ước tên trường cho biết ai điền:** `ai_` do AI điền, `check_` do người duyệt đánh dấu, `sys_` do hệ thống ghi. Nhãn và bộ phận là lựa chọn cố định, khớp từng chữ với context, để lọc và đếm luôn đúng.
 
 **Lưới an toàn không dùng AI.** Một công thức dò từ khóa nguy cơ trong tin gốc, có cả bản không dấu và hai kiểu bỏ dấu thanh:
 
@@ -118,13 +123,11 @@ Thêm một cột tự báo khi **từ khóa thấy nguy cơ mà AI không đán
 - Ca chuyển sang "cần xem gấp" → gửi email cảnh báo kèm link mở thẳng ca đó. Tin chưa qua AI nhưng có từ khóa nguy cơ vẫn được báo.
 - Người duyệt xác nhận → tự chuyển trạng thái sang "Đã chuyển xử lý", chỉ áp dụng cho ca còn "Mới" để không bao giờ ghi đè tiến độ bộ phận đã cập nhật.
 
-&#91;Ảnh: bảng PhanHoi\] \[Ảnh: giao diện Bàn duyệt khiếu nại\] \[Ảnh: email cảnh báo\]
-
 ## So sánh hai cách nối AI vào Airtable
 
 Cùng 20 tin nhắn, cùng một prompt đã đóng gói context, chạy qua hai đường:
 
-- **Cách 1 – AI có sẵn trong Airtable, model Claude Haiku 4.5:** một automation, bước sinh dữ liệu có cấu trúc với danh sách giá trị cố định (enum), ghi thẳng vào các cột ai\_.
+- **Cách 1 – AI có sẵn trong Airtable, model Claude Haiku 4.5:** một automation, bước sinh dữ liệu có cấu trúc với danh sách giá trị cố định (enum), ghi thẳng vào các cột `ai_`.
 - **Cách 2 – Make + Gemini 3.5 Flash (gói miễn phí):** Make tìm tin chưa phân loại, gửi cho Gemini, ghi ngược vào Airtable, chặn giá trị lạ thay vì tự tạo lựa chọn mới. Cấu trúc giữ sẵn chỗ để thay Gemini bằng Claude API mà không đổi các bước khác.
 
 | Tiêu chí | Cách 1 – Airtable AI | Cách 2 – Make + Gemini |
@@ -134,12 +137,8 @@ Cùng 20 tin nhắn, cùng một prompt đã đóng gói context, chạy qua hai
 | Khi lỗi có tự thử lại | Không, phải kích hoạt lại từng dòng | Có, lượt chạy sau tự tìm dòng chưa xử lý |
 | Chi phí quan sát được | 211 trên 500 tín dụng AI của tháng sau một ngày thử, kể cả các lần lỗi | Khoảng 3 credit Make mỗi tin; Gemini miễn phí nhưng phải chạy theo đợt |
 | Lấy prompt từ thư viện chung | Không, phải dán tay | Được, đọc từ base Thư viện AI |
-| Đúng nhãn (/20) | \[điền\] | \[điền\] |
-| Bỏ sót mức Cao (/6) | \[điền\] | \[điền\] |
 
-**Nhận định sơ bộ:** cùng một prompt, cách 1 không mắc lỗi gộp bộ phận nhờ enum ép giá trị, còn cách 2 lộ ra lỗi đó. Ngược lại, cách 2 phục hồi sau lỗi dễ hơn hẳn và cho phép quản lý prompt ở một chỗ. Với một công ty nhỏ, ít người kỹ thuật, cách 1 là điểm khởi đầu hợp lý; khi khối lượng tăng, dữ liệu đến từ nhiều kênh hoặc cần kiểm soát chi phí từng lần gọi, chuyển sang cách 2 với Claude API. \[Bổ sung số liệu chấm điểm để chốt kết luận\]
-
-&#91;Ảnh: scenario Make\] \[Ảnh: automation Airtable\]
+**Nhận định sơ bộ:** cùng một prompt, cách 1 không mắc lỗi gộp bộ phận nhờ enum ép giá trị, còn cách 2 lộ ra lỗi đó. Ngược lại, cách 2 phục hồi sau lỗi dễ hơn hẳn và cho phép quản lý prompt ở một chỗ. Với một công ty nhỏ, ít người kỹ thuật, cách 1 là điểm khởi đầu hợp lý; khi khối lượng tăng, dữ liệu đến từ nhiều kênh hoặc cần kiểm soát chi phí từng lần gọi, chuyển sang cách 2 với Claude API.
 
 ## Những lỗi đã bắt được và bài học
 
@@ -211,7 +210,7 @@ Câu đầu tiên quản lý và bộ phận IT hỏi khi nghe đề xuất dùn
 | 2. Airtable, lần 1 | Nội dung, khách hàng liên kết, kênh, ngày | Base của công ty, đến khi xóa | Người được mời vào base |
 | 3. Make | Chỉ các cột cần thiết: mã phản hồi và nội dung | Lịch sử chạy của Make | Người có tài khoản Make của công ty |
 | 4. Mô hình AI | **Chỉ nội dung tin nhắn.** Không gửi tên, số điện thoại, mã khách | Theo chính sách của nhà cung cấp | Nhà cung cấp, theo điều khoản dịch vụ |
-| 5. Airtable, lần 2 | Nhận thêm kết quả phân loại, ghi vào các cột ai\_ | Cùng dòng ở chặng 2 | Như chặng 2 |
+| 5. Airtable, lần 2 | Nhận thêm kết quả phân loại, ghi vào các cột `ai_` | Cùng dòng ở chặng 2 | Như chặng 2 |
 | 6. Email cảnh báo | Mã ca, nhãn, nội dung, đường dẫn tới ca | Hộp thư người nhận | Người trực được chỉ định |
 
 Chỗ cần nói rõ khi trình bày:
@@ -229,9 +228,7 @@ Chỗ cần nói rõ khi trình bày:
 - **Giám sát:** xem hằng ngày số ca gấp chưa duyệt, tỷ lệ báo sai, lịch sử chạy automation; báo cáo tháng về giờ công tiết kiệm và chi phí.
 - **Con người:** sổ tay ngắn cho nhân viên, chú thích hướng dẫn ngay trên giao diện duyệt, giờ hỗ trợ cố định mỗi tuần.
 
-## Xem thêm
+## Liên hệ
 
-- Bảng PhanHoi trên Airtable (chỉ xem): \[link\]
-- Base Thư viện AI: prompt, context, ca test, nhật ký lỗi (chỉ xem): \[link\]
-- Mã nguồn và CV: github.com/XuanThai18
-- Liên hệ: nguyenxuanthai1811@gmail.com · 0397 720 010
+- Mã nguồn các dự án khác: [github.com/XuanThai18](https://github.com/XuanThai18)
+- Email: nguyenxuanthai1811@gmail.com · Điện thoại: 0397 720 010
